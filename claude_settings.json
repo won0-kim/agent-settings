@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '\\033]777;notify;Claude Code;Done\\033\\\\' > /proc/$PPID/fd/1"
+            "command": "msg=$(jq -r '(.last_assistant_message // \"Done\") | .[:200]' 2>/dev/null | tr ';' ','); [ -z \"$msg\" ] && msg=\"Done\"; printf '\\033]777;notify;Claude Code;%s\\033\\\\' \"$msg\" > /proc/$PPID/fd/1"
           }
         ]
       }
