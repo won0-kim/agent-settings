@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '\\033]777;notify;Claude Code;Done\\033\\\\' > /proc/$PPID/fd/1"
+          }
+        ]
+      }
+    ]
+  }
+}
