@@ -1,0 +1,7 @@
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[tui]
+notifications = true
+notification_method = "osc9"
+notification_condition = "unfocused"
