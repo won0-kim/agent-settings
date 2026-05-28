@@ -1,3 +1,4 @@
+# jq '.projects["/"] = ((.projects["/"] // {}) + {hasTrustDialogAccepted: true})' ~/.claude.json > /tmp/c.json && mv /tmp/c.json ~/.claude.json
 {
   "permissions": {
     "defaultMode": "bypassPermissions"
