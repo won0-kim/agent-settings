@@ -1,5 +1,7 @@
 local wezterm = require 'wezterm'
 
+wezterm.GLOBAL.tab_args = wezterm.GLOBAL.tab_args or {}
+
 wezterm.on('format-tab-title', function(tab)
   local pane_title = tab.active_pane.title or ''
   local user_title = tab.tab_title
@@ -25,6 +27,7 @@ local function spawn_tab_with_label(window, label, args)
   local tab = mux_win:spawn_tab { args = args }
   if tab then
     tab:set_title(label)
+    wezterm.GLOBAL.tab_args[tostring(tab:tab_id())] = { label = label, args = args }
   end
 end
 
@@ -57,6 +60,36 @@ local function spawn_from_launch_menu(index)
     if not item then return end
     spawn_tab_with_label(window, item.label, item.args)
   end)
+end
+
+local function restart_current_tab(window, pane)
+  local old_tab = pane:tab()
+  if not old_tab then return end
+  local entry = wezterm.GLOBAL.tab_args[tostring(old_tab:tab_id())]
+  if not entry then
+    local title = old_tab:get_title()
+    if title and #title > 0 then
+      for _, item in ipairs(launch_menu) do
+        if item.label == title then
+          entry = { label = item.label, args = item.args }
+          break
+        end
+      end
+    end
+  end
+  if not entry then return end
+  spawn_tab_with_label(window, entry.label, entry.args)
+  old_tab:activate()
+  window:perform_action(wezterm.action.CloseCurrentTab { confirm = false }, pane)
+end
+
+local function smart_enter(window, pane)
+  local ok, info = pcall(function() return pane:get_foreground_process_info() end)
+  if not ok or not info then
+    restart_current_tab(window, pane)
+  else
+    window:perform_action(wezterm.action.SendKey { key = 'Enter' }, pane)
+  end
 end
 
 wezterm.on('new-tab-button-click', function(window, pane)
@@ -98,8 +131,6 @@ return {
     { key = 'T', mods = 'CTRL|SHIFT', action = wezterm.action_callback(new_tab_picker) },
     { key = 'c', mods = 'ALT', action = wezterm.action.CopyTo 'Clipboard' },
     { key = 'v', mods = 'ALT', action = wezterm.action.PasteFrom 'Clipboard' },
-    { key = 'C', mods = 'CTRL|SHIFT', action = wezterm.action.CopyTo 'Clipboard' },
-    { key = 'V', mods = 'CTRL|SHIFT', action = wezterm.action.PasteFrom 'Clipboard' },
     { key = 'W', mods = 'CTRL|SHIFT', action = wezterm.action.CloseCurrentPane { confirm = true } },
     { key = 'Tab', mods = 'CTRL', action = wezterm.action.ActivateTabRelative(1) },
     { key = 'Tab', mods = 'CTRL|SHIFT', action = wezterm.action.ActivateTabRelative(-1) },
@@ -114,8 +145,6 @@ return {
     { key = 'phys:7', mods = 'CTRL|SHIFT', action = spawn_from_launch_menu(7) },
     { key = 'phys:8', mods = 'CTRL|SHIFT', action = spawn_from_launch_menu(8) },
     { key = 'phys:9', mods = 'CTRL|SHIFT', action = spawn_from_launch_menu(9) },
-    { key = 'E', mods = 'CTRL|SHIFT', action = split_with_menu 'Right' },
-    { key = 'O', mods = 'CTRL|SHIFT', action = split_with_menu 'Down' },
     { key = 'phys:Comma', mods = 'CTRL', action = wezterm.action_callback(function()
         os.execute('start "" "' .. wezterm.config_file .. '"')
       end) },
@@ -125,6 +154,8 @@ return {
           if line then window:active_tab():set_title(line) end
         end),
       } },
+    { key = 'F5', mods = 'CTRL|SHIFT', action = wezterm.action_callback(restart_current_tab) },
+    { key = 'Enter', mods = 'NONE', action = wezterm.action_callback(smart_enter) },
   },
   mouse_bindings = {
     {
@@ -156,4 +187,7 @@ return {
     'Malgun Gothic',
   },
   font_size = 11,
+  color_scheme = 'Campbell (Gogh)',
+  exit_behavior = 'CloseOnCleanExit',
+  exit_behavior_messaging = 'Terse',
 }
