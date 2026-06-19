@@ -18,7 +18,7 @@ end)
 
 local launch_menu = {
   { label = 'PowerShell', args = { 'powershell.exe', '-NoLogo' } },
-  { label = 'WSL Ubuntu', args = { 'wsl.exe' } }
+  { label = 'WSL Ubuntu', args = { 'wsl.exe' } },
 }
 
 local function spawn_tab_with_label(window, label, args)
@@ -78,9 +78,10 @@ local function restart_current_tab(window, pane)
     end
   end
   if not entry then return end
-  spawn_tab_with_label(window, entry.label, entry.args)
-  old_tab:activate()
-  window:perform_action(wezterm.action.CloseCurrentTab { confirm = false }, pane)
+  local new_pane = pane:split { direction = 'Right', args = entry.args }
+  if not new_pane then return end
+  window:perform_action(wezterm.action.ActivatePaneDirection 'Left', new_pane)
+  window:perform_action(wezterm.action.CloseCurrentPane { confirm = false }, new_pane)
 end
 
 local function smart_enter(window, pane)
@@ -155,7 +156,6 @@ return {
         end),
       } },
     { key = 'F5', mods = 'CTRL|SHIFT', action = wezterm.action_callback(restart_current_tab) },
-    { key = 'Enter', mods = 'NONE', action = wezterm.action_callback(smart_enter) },
   },
   mouse_bindings = {
     {
